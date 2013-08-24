@@ -63,4 +63,5 @@ repl e = do
                     else do e' <- perform command e
 			    repl e'
 
+main :: IO ()
 main = repl empty
