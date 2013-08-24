@@ -19,9 +19,8 @@ instance Show Command where
 type Environment = Map String Int
 
 strip :: String -> String
-strip s = reverse . stripFront . reverse $ stripFront s
-    where stripFront "" = ""
-          stripFront (' ':cs) = stripFront cs
+strip = reverse . stripFront . reverse . stripFront
+    where stripFront (' ':cs) = stripFront cs
           stripFront ('\t':cs) = stripFront cs
           stripFront cs = cs
 
