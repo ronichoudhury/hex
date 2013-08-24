@@ -18,6 +18,15 @@ instance Show Command where
 
 type Environment = Map String Int
 
+newEnv :: Environment
+newEnv = empty
+
+updateEnv :: Environment -> String -> Int -> Environment
+updateEnv env var val = insert var val env
+
+lookupEnv :: Environment -> String -> Maybe Int
+lookupEnv = flip Data.Map.lookup
+
 strip :: String -> String
 strip = reverse . stripFront . reverse . stripFront
     where stripFront (' ':cs) = stripFront cs
@@ -37,13 +46,13 @@ perform :: Command -> Environment -> IO Environment
 perform (Assign var valtext) env =
     let val = readMaybe valtext in
     case val of
-        Just v  -> return $ insert (strip var) v env
+        Just v  -> return $ updateEnv env (strip var) v
         Nothing -> do putStrLn $ "error: could not parse value '" ++ strip valtext ++ "'"
                       return env
 
 perform (Report vartext) env =
     let var = strip vartext
-        val = Data.Map.lookup var env in
+        val = lookupEnv env var in
     do case val of
            Just v -> print v
            Nothing -> putStrLn $ "error: no such variable '" ++ strip var ++ "'"
@@ -62,4 +71,4 @@ repl e = do
              unless (isQuit command) $ perform command e >>= repl
 
 main :: IO ()
-main = repl empty
+main = repl newEnv
