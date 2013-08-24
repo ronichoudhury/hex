@@ -56,12 +56,10 @@ repl e = do
     putStr ">> "
     hFlush stdout
     input <- getLine
-    if strip input == ""
+    if (strip input == "")
         then repl e
         else let command = parse input in
-             unless (isQuit command) $
-                 do e' <- perform command e
-                    repl e'
+             unless (isQuit command) $ perform command e >>= repl
 
 main :: IO ()
 main = repl empty
