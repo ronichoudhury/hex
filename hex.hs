@@ -34,20 +34,22 @@ parse input
         (varname, value) = break (== '=') input
 
 perform :: Command -> Environment -> IO Environment
-perform cmd env = case cmd of
-    Assign var valtext ->
-        let val = readMaybe valtext in
-           case val of
-               Just v -> return $ insert (strip var) v env
-               Nothing -> do putStrLn $ "error: could not parse value '" ++ strip valtext ++ "'"
-                             return env
-    Report vartext -> let var = strip vartext
-                          val = Data.Map.lookup var env in
-                      do case val of
-                             Just v -> print v
-                             Nothing -> putStrLn $ "error: no such variable '" ++ strip var ++ "'"
-                         return env
-    Quit -> error "perform called with Quit"
+perform (Assign var valtext) env =
+    let val = readMaybe valtext in
+    case val of
+        Just v  -> return $ insert (strip var) v env
+        Nothing -> do putStrLn $ "error: could not parse value '" ++ strip valtext ++ "'"
+                      return env
+
+perform (Report vartext) env =
+    let var = strip vartext
+        val = Data.Map.lookup var env in
+    do case val of
+           Just v -> print v
+           Nothing -> putStrLn $ "error: no such variable '" ++ strip var ++ "'"
+       return env
+
+perform Quit _ = error "perform called with Quit"
 
 repl :: Environment -> IO ()
 repl e = do
