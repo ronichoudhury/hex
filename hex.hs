@@ -26,11 +26,12 @@ strip = reverse . stripFront . reverse . stripFront
 
 parse :: String -> Command
 parse input
-    | input `elem` ["quit", "exit"]  = Quit
-    | '=' `elem` input               = Assign varname (tail value)
+    | strip input `elem` ["quit", "exit"]  = Quit
+    | '=' `elem` input               = Assign varname value
     | otherwise                      = Report input
     where
-        (varname, value) = break (== '=') input
+        (varname, value) = (fst p, tail $ snd p)
+        p = break (== '=') input
 
 perform :: Command -> Environment -> IO Environment
 perform (Assign var valtext) env =
