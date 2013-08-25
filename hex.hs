@@ -1,15 +1,13 @@
 import Control.Monad
+import Data.Functor
 import Data.Map
+import System.Exit
 import System.IO
 import Text.Read
 
 data Command = Quit
              | Assign String String
              | Report String
-
-isQuit :: Command -> Bool
-isQuit Quit = True
-isQuit _ = False
 
 instance Show Command where
     show Quit = "Quit"
@@ -19,10 +17,10 @@ instance Show Command where
 type Environment = Map String Int
 
 newEnv :: Environment
-newEnv = empty
+newEnv = Data.Map.empty
 
 updateEnv :: Environment -> String -> Int -> Environment
-updateEnv env var val = insert var val env
+updateEnv env var val = Data.Map.insert var val env
 
 lookupEnv :: Environment -> String -> Maybe Int
 lookupEnv = flip Data.Map.lookup
@@ -60,15 +58,20 @@ perform (Report vartext) env =
 
 perform Quit _ = error "perform called with Quit"
 
+isExit :: String -> Bool
+isExit input
+    | strip input `elem` ["exit", "quit"] = True
+    | otherwise = False
+
 repl :: Environment -> IO ()
 repl e = do
     putStr ">> "
     hFlush stdout
-    input <- getLine
-    if (strip input == "")
+    input <- strip <$> getLine
+    when (isExit input) exitSuccess
+    if input == ""
         then repl e
-        else let command = parse input in
-             unless (isQuit command) $ perform command e >>= repl
+        else perform (parse input) e >>= repl
 
 main :: IO ()
 main = repl newEnv
