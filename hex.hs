@@ -5,12 +5,10 @@ import System.Exit
 import System.IO
 import Text.Read
 
-data Command = Quit
-             | Assign String String
+data Command = Assign String String
              | Report String
 
 instance Show Command where
-    show Quit = "Quit"
     show (Assign var val) = "Assign " ++ var ++ " " ++ val
     show (Report var) = "Report " ++ var
 
@@ -33,7 +31,6 @@ strip = reverse . stripFront . reverse . stripFront
 
 parse :: String -> Command
 parse input
-    | strip input `elem` ["quit", "exit"]  = Quit
     | '=' `elem` input               = Assign varname value
     | otherwise                      = Report input
     where
@@ -55,8 +52,6 @@ perform (Report vartext) env =
            Just v -> print v
            Nothing -> putStrLn $ "error: no such variable '" ++ strip var ++ "'"
        return env
-
-perform Quit _ = error "perform called with Quit"
 
 isExit :: String -> Bool
 isExit input
