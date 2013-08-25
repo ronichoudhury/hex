@@ -1,66 +1,74 @@
 import Control.Monad
+import Data.Functor
 import Data.Map
+import System.Exit
 import System.IO
 import Text.Read
 
-data Command = Quit
-             | Assign String String
+data Command = Assign String String
              | Report String
-
-isQuit :: Command -> Bool
-isQuit Quit = True
-isQuit _ = False
+             | NoOp
 
 instance Show Command where
-    show Quit = "Quit"
     show (Assign var val) = "Assign " ++ var ++ " " ++ val
     show (Report var) = "Report " ++ var
+    show NoOp = "NoOp"
 
 type Environment = Map String Int
 
+newEnv :: Environment
+newEnv = Data.Map.empty
+
+updateEnv :: Environment -> String -> Int -> Environment
+updateEnv env var val = Data.Map.insert var val env
+
+lookupEnv :: Environment -> String -> Maybe Int
+lookupEnv = flip Data.Map.lookup
+
 strip :: String -> String
-strip s = reverse . stripFront . reverse $ stripFront s
-    where stripFront "" = ""
-          stripFront (' ':cs) = stripFront cs
+strip = reverse . stripFront . reverse . stripFront
+    where stripFront (' ':cs) = stripFront cs
           stripFront ('\t':cs) = stripFront cs
           stripFront cs = cs
 
 parse :: String -> Command
+parse "" = NoOp
 parse input
-    | input `elem` ["quit", "exit"]  = Quit
-    | '=' `elem` input               = Assign varname (tail value)
-    | otherwise                      = Report input
+    | '=' `elem` input = Assign varname value
+    | otherwise        = Report input
     where
-        (varname, value) = break (== '=') input
+        (varname, value) = (fst p, tail $ snd p)
+        p = break (== '=') input
 
-perform :: Command -> Environment -> IO Environment
-perform cmd env = do
-    case cmd of
-        Assign var valtext ->
-            let val = readMaybe valtext in
-               case val of
-                   Just v -> return $ insert (strip var) v env
-                   Nothing -> do putStrLn $ "error: could not parse value '" ++ (strip valtext) ++ "'"
-                                 return env
-        Report vartext -> let var = strip vartext
-	                      val = Data.Map.lookup var env in
-                          do case val of
-                                 Just v -> putStrLn $ show v
-                                 Nothing -> putStrLn $ "error: no such variable '" ++ (strip var) ++ "'"
-                             return env
-        Quit -> error "perform called with Quit"
+perform :: Command -> Environment -> (Environment, String)
+perform (Assign var valtext) env =
+    case (readMaybe valtext) of
+        Just v  -> (updateEnv env (strip var) v, "")
+        Nothing -> (env, "error: could not parse value '" ++ strip valtext ++ "'\n")
+
+perform (Report vartext) env =
+    let var = strip vartext
+        val = lookupEnv env var in
+    case val of
+        Just v -> (env, show v ++ "\n")
+        Nothing -> (env, "error: no such variable '" ++ var ++ "'\n")
+
+perform NoOp env = (env, "")
+
+isExit :: String -> Bool
+isExit input
+    | strip input `elem` ["exit", "quit"] = True
+    | otherwise = False
 
 repl :: Environment -> IO ()
 repl e = do
     putStr ">> "
     hFlush stdout
-    input <- getLine
-    if strip input == ""
-        then repl e
-        else do command <- return $ parse input
-	        if isQuit command
-                    then return ()
-                    else do e' <- perform command e
-			    repl e'
+    input <- strip <$> getLine
+    when (isExit input) exitSuccess
+    let (e', msg) = perform (parse input) e
+    putStr msg
+    repl e'
 
-main = repl empty
+main :: IO ()
+main = repl newEnv
