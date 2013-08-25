@@ -47,11 +47,10 @@ perform (Assign var valtext) env =
         Nothing -> (env, "error: could not parse value '" ++ strip valtext ++ "'\n")
 
 perform (Report vartext) env =
-    let var = strip vartext
-        val = lookupEnv env var in
-    case val of
-        Just v -> (env, show v ++ "\n")
-        Nothing -> (env, "error: no such variable '" ++ var ++ "'\n")
+    let var = strip vartext in
+    case lookupEnv env var of
+        Just value -> (env, show value ++ "\n")
+        Nothing    -> (env, "error: no such variable '" ++ var ++ "'\n")
 
 perform NoOp env = (env, "")
 
