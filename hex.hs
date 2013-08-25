@@ -42,7 +42,7 @@ parse input
 
 perform :: Command -> Environment -> (Environment, String)
 perform (Assign var valtext) env =
-    case (readMaybe valtext) of
+    case readMaybe valtext of
         Just v  -> (updateEnv env (strip var) v, "")
         Nothing -> (env, "error: could not parse value '" ++ strip valtext ++ "'\n")
 
