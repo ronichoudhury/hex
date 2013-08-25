@@ -7,10 +7,12 @@ import Text.Read
 
 data Command = Assign String String
              | Report String
+             | NoOp
 
 instance Show Command where
     show (Assign var val) = "Assign " ++ var ++ " " ++ val
     show (Report var) = "Report " ++ var
+    show NoOp = "NoOp"
 
 type Environment = Map String Int
 
@@ -30,28 +32,28 @@ strip = reverse . stripFront . reverse . stripFront
           stripFront cs = cs
 
 parse :: String -> Command
+parse "" = NoOp
 parse input
-    | '=' `elem` input               = Assign varname value
-    | otherwise                      = Report input
+    | '=' `elem` input = Assign varname value
+    | otherwise        = Report input
     where
         (varname, value) = (fst p, tail $ snd p)
         p = break (== '=') input
 
-perform :: Command -> Environment -> IO Environment
+perform :: Command -> Environment -> (Environment, String)
 perform (Assign var valtext) env =
-    let val = readMaybe valtext in
-    case val of
-        Just v  -> return $ updateEnv env (strip var) v
-        Nothing -> do putStrLn $ "error: could not parse value '" ++ strip valtext ++ "'"
-                      return env
+    case (readMaybe valtext) of
+        Just v  -> (updateEnv env (strip var) v, "")
+        Nothing -> (env, "error: could not parse value '" ++ strip valtext ++ "'\n")
 
 perform (Report vartext) env =
     let var = strip vartext
         val = lookupEnv env var in
-    do case val of
-           Just v -> print v
-           Nothing -> putStrLn $ "error: no such variable '" ++ strip var ++ "'"
-       return env
+    case val of
+        Just v -> (env, show v ++ "\n")
+        Nothing -> (env, "error: no such variable '" ++ var ++ "'\n")
+
+perform NoOp env = (env, "")
 
 isExit :: String -> Bool
 isExit input
@@ -64,9 +66,9 @@ repl e = do
     hFlush stdout
     input <- strip <$> getLine
     when (isExit input) exitSuccess
-    if input == ""
-        then repl e
-        else perform (parse input) e >>= repl
+    let (e', msg) = perform (parse input) e
+    putStr msg
+    repl e'
 
 main :: IO ()
 main = repl newEnv
